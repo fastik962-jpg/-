@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life Tracker">
+<meta name="theme-color" content="#0A0A0C">
+<title>Habit & Life Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{--bg:#0A0A0C;--card:#141418;--pu:#8B5CF6;--gr:#10B981;--bl:#3B82F6;--mut:#8b8b99}
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:#ececf1;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text;font-size:16px}
+#app{height:100%;display:flex;flex-direction:column}
+header{padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:linear-gradient(#0A0A0C,#0A0A0Cee);border-bottom:1px solid #1d1d24}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 24px}
+nav{display:flex;background:#0d0d11;border-top:1px solid #1d1d24;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
+nav button{flex:1;padding:8px 0;font-size:11px;color:var(--mut);transition:.2s;border-radius:12px}
+nav button .ic{font-size:22px;display:block;transition:transform .25s}
+nav button.on{color:#fff}nav button.on .ic{transform:translateY(-2px) scale(1.15);filter:drop-shadow(0 0 8px var(--pu))}
+.card{background:var(--card);border:1px solid #1f1f27;border-radius:20px;padding:16px;margin-bottom:14px}
+.h{font-weight:700;font-size:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.btn{min-height:48px;border-radius:14px;background:#1d1d25;border:1px solid #2a2a35;font-weight:600;padding:0 14px;transition:transform .12s,background .2s,box-shadow .2s}
+.btn:active{transform:scale(.94)}
+.btn.pu{background:var(--pu);border-color:var(--pu);box-shadow:0 0 18px #8B5CF655}
+.btn.gr{background:var(--gr);border-color:var(--gr);color:#04140d;box-shadow:0 0 18px #10B98155}
+.btn.bl{background:var(--bl);border-color:var(--bl);box-shadow:0 0 18px #3B82F655}
+.btn.sel{border-color:var(--pu);background:#8B5CF622;box-shadow:0 0 14px #8B5CF644}
+.bar{height:14px;border-radius:8px;background:#1d1d25;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:8px;transition:width .6s cubic-bezier(.2,.9,.3,1)}
+.inp{width:100%;min-height:48px;background:#0e0e12;border:1px solid #2a2a35;border-radius:14px;padding:0 14px;color:#fff;outline:none}
+.inp:focus{border-color:var(--pu);box-shadow:0 0 0 3px #8B5CF633}
+.tab{animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes up{0%{transform:translate(-50%,20px);opacity:0}15%,85%{transform:translate(-50%,0);opacity:1}100%{transform:translate(-50%,-10px);opacity:0}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px #8B5CF655}50%{box-shadow:0 0 40px #8B5CF6aa}}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 70px);transform:translateX(-50%);background:#1b1b24;border:1px solid var(--pu);padding:10px 16px;border-radius:14px;font-size:14px;z-index:50;animation:up 2.6s ease forwards;white-space:nowrap;box-shadow:0 0 24px #8B5CF655;pointer-events:none}
+.lv{position:fixed;inset:0;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60;animation:fade .3s}
+.lv b{font-size:64px;animation:pop .6s;color:var(--pu);text-shadow:0 0 30px var(--pu)}
+.done{text-decoration:line-through;color:var(--mut)}
+.ach{opacity:.35;filter:grayscale(1)}.ach.on{opacity:1;filter:none;animation:pop .5s}
+.chk{width:30px;height:30px;border-radius:9px;border:2px solid #3a3a48;display:flex;align-items:center;justify-content:center;transition:.2s;flex:none}
+.chk.on{background:var(--gr);border-color:var(--gr);color:#04140d;box-shadow:0 0 12px #10B98177}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="flex items-center gap-3">
+      <div id="lvBadge" class="w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-lg" style="background:linear-gradient(135deg,#8B5CF6,#3B82F6);animation:glow 3s infinite"></div>
+      <div class="flex-1">
+        <div class="flex justify-between text-xs mb-1"><span id="lvTitle" class="font-semibold"></span><span id="xpTxt" style="color:var(--mut)"></span></div>
+        <div class="bar" style="height:8px"><i id="xpBar" style="background:linear-gradient(90deg,#8B5CF6,#3B82F6);width:0"></i></div>
+      </div>
+      <button id="snd" class="text-xl w-10 h-10" aria-label="Звук"></button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav id="nav"></nav>
+</div>
+<script>
+/* ===== STATE ===== */
+const KEY='hlt_v2',WATER_GOAL=2500;
+const def={goal:80000,key:'',xp:0,tasks:[],days:{},fund:[],body:[],ach:{},pomos:0,sound:true,awarded:{}};
+let S;try{S=Object.assign({},def,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S={...def}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const dkey=(d=new Date())=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const day=()=>S.days[dkey()]||(S.days[dkey()]={water:0,protein:false,workout:null});
+const fmtD=t=>{const d=new Date(t);return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()};
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tab=0,diff=-1,pf=null;
+const DIFFS=[{n:'Лёгкая',xp:10,c:'gr'},{n:'Средняя',xp:25,c:'bl'},{n:'Сложная',xp:50,c:'pu'}];
+const TITLES=['Новичок','Ученик','Практик','Боец','Эксперт','Мастер','Элита','Легенда'];
+
+/* ===== SOUND ===== */
+let ac;
+function tone(f,d=.08,type='sine',v=.08,t0=0){
+  if(!S.sound)return;
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+    const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+t0;
+    o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.02)}catch(e){}
+}
+const sClick=()=>tone(520,.05,'triangle',.06);
+const sOk=()=>{tone(660,.1,'sine',.08);tone(880,.14,'sine',.08,.09)};
+const sAch=()=>[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',.09,i*.09));
+const sLvl=()=>[392,523,659,784,1047,1318].forEach((f,i)=>tone(f,.25,'square',.05,i*.1));
+const sTick=()=>tone(300,.04,'square',.03);
+document.addEventListener('click',e=>{if(e.target.closest('button'))sClick()},true);
+
+/* ===== XP / LEVELS ===== */
+const need=l=>100+(l-1)*50;
+function lvInfo(){let l=1,x=S.xp;while(x>=need(l)){x-=need(l);l++}return{l,x,n:need(l)}}
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2700)}
+function addXp(n,why){
+  const b=lvInfo().l;S.xp+=n;const a=lvInfo().l;save();
+  toast('+'+n+' XP · '+why);
+  if(a>b){sLvl();const o=document.createElement('div');o.className='lv';
+    o.innerHTML='<div style="color:#8b8b99">НОВЫЙ УРОВЕНЬ</div><b>'+a+'</b><div class="mt-2 font-semibold">'+TITLES[Math.min(a-1,TITLES.length-1)]+'</div><div class="mt-6 text-sm" style="color:#8b8b99">Нажми, чтобы продолжить</div>';
+    o.onclick=()=>o.remove();document.body.appendChild(o)}
+  head();
+}
+function award(k,n,why){const id=dkey()+':'+k;if(S.awarded[id])return;S.awarded[id]=1;addXp(n,why)}
+function awardOnce(k,n,why){if(S.awarded[k])return;S.awarded[k]=1;addXp(n,why)}
+
+/* ===== ACHIEVEMENTS ===== */
+const fundSum=()=>S.fund.reduce((a,t)=>a+t.amt,0);
+const doneTasks=()=>S.tasks.filter(t=>t.done).length;
+const ACH=[
+ {id:'t1',i:'✅',n:'Первый шаг',d:'Выполни 1 задачу',xp:20,ok:()=>doneTasks()>=1},
+ {id:'t10',i:'🔥',n:'Продуктивный',d:'Выполни 10 задач',xp:60,ok:()=>doneTasks()>=10},
+ {id:'t3h',i:'🧠',n:'Хардкор',d:'Закрой сложную задачу',xp:40,ok:()=>S.tasks.some(t=>t.done&&t.d===2)},
+ {id:'w',i:'💧',n:'Гидратация',d:'Выпей 2500 мл за день',xp:30,ok:()=>Object.values(S.days).some(d=>d.water>=WATER_GOAL)},
+ {id:'s3',i:'⚡',n:'Серия 3',d:'3 дня подряд',xp:50,ok:()=>streak()>=3},
+ {id:'s7',i:'🏆',n:'Серия 7',d:'7 дней подряд',xp:120,ok:()=>streak()>=7},
+ {id:'f1',i:'💰',n:'Первый доллар',d:'Первое пополнение',xp:20,ok:()=>S.fund.length>=1},
+ {id:'f50',i:'🛫',n:'Полпути в Кошице',d:'Накопи 50% цели',xp:100,ok:()=>fundSum()>=goalV()/2},
+ {id:'f100',i:'🇸🇰',n:'Кошице ждёт!',d:'Достигни цели',xp:300,ok:()=>fundSum()>=goalV()},
+ {id:'b3',i:'📏',n:'Под контролем',d:'3 замера тела',xp:40,ok:()=>S.body.length>=3},
+ {id:'p1',i:'⏱️',n:'В фокусе',d:'Заверши Pomodoro',xp:25,ok:()=>S.pomos>=1},
+ {id:'p10',i:'🎯',n:'Глубокая работа',d:'10 Pomodoro',xp:100,ok:()=>S.pomos>=10},
+ {id:'l5',i:'👑',n:'Уровень 5',d:'Достигни 5 уровня',xp:0,ok:()=>lvInfo().l>=5}
+];
+function checkAch(){
+  ACH.forEach(a=>{if(!S.ach[a.id]&&a.ok()){S.ach[a.id]=Date.now();save();sAch();toast('🏅 '+a.n);if(a.xp)setTimeout(()=>addXp(a.xp,'достижение'),900)}});
+}
+
+/* ===== STREAK ===== */
+const isDone=k=>{const d=S.days[k];return d&&d.water>=WATER_GOAL&&d.protein&&d.workout};
+function streak(){let d=new Date(),n=0;if(!isDone(dkey(d)))d.setDate(d.getDate()-1);
+  while(isDone(dkey(d))){n++;d.setDate(d.getDate()-1)}return n}
+
+/* ===== HEADER / NAV ===== */
+function head(){const i=lvInfo();
+  $('#lvBadge').textContent=i.l;
+  $('#lvTitle').textContent=TITLES[Math.min(i.l-1,TITLES.length-1)];
+  $('#xpTxt').textContent=i.x+' / '+i.n+' XP';
+  $('#xpBar').style.width=(i.x/i.n*100)+'%';
+  $('#snd').textContent=S.sound?'🔊':'🔇'}
+$('#snd').onclick=()=>{S.sound=!S.sound;save();head();sClick()};
+const TABS=[['⚡','Главная'],['💰','Финансы'],['🎓','Задачи'],['📊','Прогресс']];
+function nav(){$('#nav').innerHTML=TABS.map((t,i)=>`<button class="${i===tab?'on':''}" onclick="go(${i})"><span class="ic">${t[0]}</span>${t[1]}</button>`).join('')}
+function go(i){tab=i;nav();render();$('#main').scrollTop=0}
+
+/* ===== VIEWS ===== */
+const WORK=[['🏋️','Сила + База','Спина / Брусья / Пресс'],['🧗','Скалодром / Хват','Турник / Вис / Эспандер'],['🏃','Кардио / Функционал',''],['🧘','Растяжка / Мобильность',''],['💤','День отдыха','']];
+function viewHome(){const d=day(),p=Math.min(100,d.water/WATER_GOAL*100),st=streak();
+ return `<div class="tab">
+ <div class="card flex items-center justify-between" style="background:linear-gradient(135deg,#1b1530,#141418)">
+  <div><div style="color:var(--mut);font-size:13px">Серия дней</div><div class="text-4xl font-extrabold">${st} <span class="text-2xl">🔥</span></div></div>
+  <div class="text-right text-xs" style="color:var(--mut);max-width:150px">Вода + белок + тренировка = день засчитан</div></div>
+ <div class="card"><div class="h"><span>💧 Вода</span><span style="color:var(--bl)">${d.water} / ${WATER_GOAL} мл</span></div>
+  <div class="bar mb-3"><i style="width:${p}%;background:linear-gradient(90deg,#3B82F6,#8B5CF6)"></i></div>
+  <div class="grid grid-cols-3 gap-2"><button class="btn bl" onclick="water(250)">+250</button><button class="btn bl" onclick="water(500)">+500</button><button class="btn" onclick="water(0)">Сброс</button></div></div>
+ <div class="card"><div class="h"><span>🥩 Белок</span><span style="color:var(--mut);font-size:12px">+15 XP</span></div>
+  <button class="flex items-center gap-3 w-full text-left min-h-[48px]" onclick="protein()"><span class="chk ${d.protein?'on':''}">${d.protein?'✓':''}</span><span>Норма белка (120–140г)</span></button></div>
+ <div class="card"><div class="h"><span>🏋️ Тренировка сегодня</span><span style="color:var(--mut);font-size:12px">+30 XP</span></div>
+  <div class="flex flex-col gap-2">${WORK.map((w,i)=>`<button class="btn text-left flex items-center gap-3 ${d.workout===w[1]?'sel':''}" style="padding:8px 14px" onclick="workout(${i})"><span class="text-2xl">${w[0]}</span><span><span class="block">${w[1]}</span>${w[2]?`<span class="block text-xs font-normal" style="color:var(--mut)">${w[2]}</span>`:''}</span></button>`).join('')}</div></div>
+ </div>`}
+function water(n){const d=day();d.water=n?d.water+n:0;save();if(d.water>=WATER_GOAL){sOk();award('water',20,'норма воды')}checkAch();render()}
+function protein(){const d=day();d.protein=!d.protein;save();if(d.protein){sOk();award('prot',15,'белок')}streakCheck();render()}
+function workout(i){const d=day();d.workout=WORK[i][1];save();sOk();award('work',30,'тренировка');streakCheck();render()}
+function streakCheck(){if(isDone(dkey()))award('streak',10+Math.min(streak(),20)*2,'серия '+streak());checkAch()}
+
+function viewFund(){const s=fundSum(),p=Math.min(100,s/goalV()*100),left=Math.max(0,goalV()-s);
+ return `<div class="tab">
+ <div class="card" style="background:linear-gradient(135deg,#0d2a20,#141418)">
+  <div class="h"><span>🇸🇰 Фонд «Кошице»</span><span style="color:var(--gr)">${p.toFixed(1)}%</span></div>
+  <div class="text-3xl font-extrabold mb-3">${fmt(s)} <span class="text-base font-normal" style="color:var(--mut)">/ ${fmt(goalV())} грн</span></div>
+  <div class="bar"><i style="width:${p}%;background:linear-gradient(90deg,#10B981,#3B82F6)"></i></div>
+  <div class="flex justify-between items-center text-sm mt-2" style="color:var(--mut)"><span>Осталось: ${fmt(left)} грн</span><button class="underline py-2" onclick="setGoal()">Изменить цель</button></div></div>
+ <div class="card"><div class="h">Пополнение <span style="color:var(--mut);font-size:12px">+10 XP</span></div>
+  <div class="flex gap-2"><input id="amt" type="number" inputmode="decimal" min="0" placeholder="Сумма, грн" class="inp"><button class="btn gr whitespace-nowrap" onclick="addFund()">В копилку</button></div></div>
+ <div class="card"><div class="h">История</div>${S.fund.length?[...S.fund].reverse().map(t=>`<div class="flex justify-between py-2 border-b" style="border-color:#1f1f27"><span style="color:var(--mut)">${fmtD(t.t)}</span><b style="color:var(--gr)">+${fmt(t.amt)} грн</b></div>`).join(''):'<div style="color:var(--mut)">Пока пусто — добавь первую сумму.</div>'}</div></div>`}
+function addFund(){const v=parseFloat($('#amt').value);if(!(v>0)){toast('Введи сумму больше 0');return}
+ S.fund.push({t:Date.now(),amt:v});save();sOk();addXp(10,'взнос в копилку');checkAch();render()}
+
+function viewTasks(){const open=S.tasks.filter(t=>!t.done),done=S.tasks.filter(t=>t.done);
+ const row=t=>`<div class="flex items-center gap-3 py-2 border-b" style="border-color:#1f1f27">
+  <button class="chk ${t.done?'on':''}" onclick="toggle(${t.id})">${t.done?'✓':''}</button>
+  <div class="flex-1 ${t.done?'done':''}">${esc(t.text)}<div class="text-xs" style="color:var(--${DIFFS[t.d].c==='gr'?'gr':DIFFS[t.d].c==='bl'?'bl':'pu'})">${DIFFS[t.d].n} · +${DIFFS[t.d].xp} XP</div>${t.why?`<div class="text-xs" style="color:var(--mut)">${esc(t.why)}</div>`:''}</div>
+  <button class="w-10 h-10 text-lg" onclick="delTask(${t.id})" aria-label="Удалить">🗑️</button></div>`;
+ return `<div class="tab">
+ <div class="card"><div class="h">Новая задача</div>
+  <input id="tt" class="inp mb-2" placeholder="Опиши задание для колледжа"><label class="btn flex items-center justify-center gap-2 mb-2 w-full text-sm" style="cursor:pointer">📎 Загрузить файл задания (PDF, фото, txt)<input type="file" hidden onchange="pickFile(this)" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.doc,.docx"></label><div id="fname" class="text-xs mb-2" style="color:var(--gr)"></div>
+  <div class="grid grid-cols-4 gap-2 mb-2"><button class="btn ${diff===-1?'sel':''}" style="padding:6px;font-size:13px" onclick="setDiff(-1)">🤖 Авто<span class="block text-xs font-normal" style="color:var(--mut)">сам</span></button>${DIFFS.map((x,i)=>`<button class="btn ${diff===i?'sel':''}" style="padding:6px;font-size:13px" onclick="setDiff(${i})">${x.n}<span class="block text-xs font-normal" style="color:var(--mut)">+${x.xp} XP</span></button>`).join('')}</div>
+  <button id="addb" class="btn pu w-full" onclick="addTask()">Добавить</button></div>
+ <div class="card"><div class="h">Задачи (${open.length})</div>${open.length?open.map(row).join(''):'<div style="color:var(--mut)">Всё чисто. Добавь следующую цель.</div>'}${done.length?`<div class="h mt-4" style="color:var(--mut)">Выполнено (${done.length})</div>`+done.map(row).join(''):''}</div>
+ <div class="card"><div class="h"><span>⏱️ Pomodoro</span><span style="color:var(--mut);font-size:12px">+15 XP</span></div>
+  <div class="flex flex-col items-center"><div class="relative" style="width:200px;height:200px">
+   <svg viewBox="0 0 100 100" width="200" height="200" style="transform:rotate(-90deg)"><circle cx="50" cy="50" r="44" stroke="#1d1d25" stroke-width="6" fill="none"/><circle id="ring" cx="50" cy="50" r="44" stroke="#8B5CF6" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.46" style="transition:stroke-dashoffset .3s linear"/></svg>
+   <div class="absolute inset-0 flex flex-col items-center justify-center"><div id="pmode" style="color:var(--mut);font-size:13px"></div><div id="ptime" class="text-5xl font-extrabold" style="font-variant-numeric:tabular-nums"></div></div></div>
+  <div class="grid grid-cols-2 gap-2 w-full mt-3"><button id="pgo" class="btn gr" onclick="pToggle()"></button><button class="btn" onclick="pReset()">Reset</button></div></div></div></div>`}
+const fmt=n=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2});
+const goalV=()=>S.goal||80000;
+function setGoal(){const v=parseFloat((prompt('Цель, грн',goalV())||'').replace(',','.'));if(v>0){S.goal=v;save();checkAch();render()}}
+function saveKey(del){S.key=del?'':$('#ak').value.trim();save();toast(S.key?'Ключ сохранён':'Ключ удалён');render()}
+function fn(){const e=$('#fname');if(e)e.textContent=pf?'📎 '+pf.name:''}
+function setDiff(i){diff=i;const v=$('#tt').value;render();$('#tt').value=v;fn()}
+function pickFile(el){const f=el.files[0];if(!f)return;
+ if(f.size>8e6){toast('Файл больше 8 МБ');return}
+ const rd=new FileReader(),txt=/\.(txt|md)$/i.test(f.name)||f.type.startsWith('text/');
+ rd.onload=()=>{pf={name:f.name,size:f.size,type:f.type,txt,data:txt?rd.result:rd.result.split(',')[1]};fn()};
+ txt?rd.readAsText(f):rd.readAsDataURL(f)}
+function heur(text,f){
+ const s=(text+' '+(f?f.name+' '+(f.txt?f.data:''):'')).toLowerCase();
+ const H=/курсов|диплом|проект|схемотехник|разработ|программ|расч[её]т|моделирован|исследован|практик/,
+ M=/реферат|лабораторн|доклад|презентац|контрольн|эссе|чертеж|анализ|бит|монтаж|видео/,
+ E=/прочита|оформ|отправ|сдать|конспект|переписа|подготов/;
+ let sc=0,why=[];
+ if(H.test(s)){sc+=3;why.push('сложная тематика')}else if(M.test(s)){sc+=2;why.push('средний формат работы')}else if(E.test(s)){sc+=1}
+ const w=s.split(/\s+/).length;if(w>300){sc+=2;why.push('большой объём текста')}else if(w>60){sc+=1}
+ if(f&&f.size>1.5e6){sc+=1;why.push('объёмный файл')}
+ if(/сегодня|завтра|срочно|дедлайн/.test(s)){sc+=1;why.push('сжатый срок')}
+ return{d:sc>=4?2:sc>=2?1:0,why:'Локальная оценка'+(why.length?': '+why.join(', '):'')}}
+async function aiRate(text,f){
+ const c=[];
+ if(f&&f.txt)c.push({type:'text',text:'Файл «'+f.name+'»:\n'+f.data.slice(0,15000)});
+ else if(f&&f.type==='application/pdf')c.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:f.data}});
+ else if(f&&/^image\/(png|jpe?g|webp|gif)$/.test(f.type))c.push({type:'image',source:{type:'base64',media_type:f.type==='image/jpg'?'image/jpeg':f.type,data:f.data}});
+ c.push({type:'text',text:'Задание для студента 4 курса колледжа (электроника/IT): «'+text+'». Оцени сложность и ориентировочное время, при необходимости найди информацию в интернете. Ответь ТОЛЬКО JSON: {"d":0|1|2,"why":"кратко по-русски, до 120 символов, с оценкой часов"}. 0=лёгкая (до 1 ч), 1=средняя (1–4 ч), 2=сложная (больше 4 ч или высокая сложность).'});
+ const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-5-5',max_tokens:800,tools:[{type:'web_search_20250305',name:'web_search',max_uses:3}],messages:[{role:'user',content:c}]})});
+ if(!res.ok)throw new Error(res.status);
+ const j=await res.json(),t=j.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+ const m=t.match(/\{[^{}]*\}/g),o=JSON.parse(m[m.length-1]);
+ if(![0,1,2].includes(o.d))throw 0;return{d:o.d,why:'ИИ: '+o.why}}
+async function addTask(){
+ const v=$('#tt').value.trim();if(!v&&!pf){toast('Введи задачу или прикрепи файл');return}
+ const text=v||pf.name;let d=diff,why='';
+ if(d<0){const b=$('#addb');b.textContent='⏳ Определяю сложность…';b.disabled=true;
+  let x;try{if(!S.key)throw 0;x=await aiRate(text,pf)}catch(e){x=heur(text,pf);if(S.key)toast('ИИ недоступен, локальная оценка')}
+  d=x.d;why=x.why}
+ S.tasks.push({id:Date.now(),text,d,why,done:false});pf=null;save();toast('Сложность: '+DIFFS[d].n+' · +'+DIFFS[d].xp+' XP');render()}
+function toggle(id){const t=S.tasks.find(x=>x.id===id);t.done=!t.done;save();
+ if(t.done){sOk();const k='task'+id;if(!S.awarded[k]){S.awarded[k]=1;addXp(DIFFS[t.d].xp,'задача выполнена')}}checkAch();render()}
+function delTask(id){S.tasks=S.tasks.filter(x=>x.id!==id);save();render()}
+
+/* Pomodoro */
+const P={mode:'work',left:1500,run:false,end:0,iv:null};
+const PL={work:1500,break:300};
+function pDraw(){const t=$('#ptime');if(!t)return;
+ t.textContent=pad(Math.floor(P.left/60))+':'+pad(P.left%60);
+ $('#pmode').textContent=P.mode==='work'?'Работа':'Отдых';
+ $('#pgo').textContent=P.run?'Pause':'Start';
+ const r=$('#ring');r.style.strokeDashoffset=276.46*(1-P.left/PL[P.mode]);r.style.stroke=P.mode==='work'?'#8B5CF6':'#10B981'}
+function pTick(){P.left=Math.max(0,Math.round((P.end-Date.now())/1000));pDraw();
+ if(P.left<=0){clearInterval(P.iv);P.run=false;
+  if(P.mode==='work'){S.pomos++;save();sLvl();addXp(15,'Pomodoro');checkAch();P.mode='break'}else{sAch();P.mode='work'}
+  P.left=PL[P.mode];pDraw()}}
+function pToggle(){if(P.run){P.run=false;clearInterval(P.iv)}else{P.run=true;P.end=Date.now()+P.left*1000;P.iv=setInterval(pTick,250)}pDraw()}
+function pReset(){clearInterval(P.iv);P.run=false;P.mode='work';P.left=PL.work;pDraw()}
+
+function viewProg(){const b=[...S.body].reverse(),last=S.body[S.body.length-1],prev=S.body[S.body.length-2];
+ const dl=(k,u)=>prev&&last?`<span class="text-xs" style="color:${last[k]-prev[k]>0?'#f59e0b':'var(--gr)'}">${last[k]-prev[k]>0?'+':''}${(last[k]-prev[k]).toFixed(1)}</span>`:'';
+ const doneCnt=Object.keys(S.days).filter(isDone).length,li=lvInfo();
+ return `<div class="tab">
+ <div class="card"><div class="h">Статистика</div><div class="grid grid-cols-3 gap-2 text-center">
+  <div><div class="text-2xl font-extrabold">${li.l}</div><div class="text-xs" style="color:var(--mut)">уровень</div></div>
+  <div><div class="text-2xl font-extrabold">${S.xp}</div><div class="text-xs" style="color:var(--mut)">всего XP</div></div>
+  <div><div class="text-2xl font-extrabold">${doneCnt}</div><div class="text-xs" style="color:var(--mut)">идеальных дней</div></div></div></div>
+ <div class="card"><div class="h">Замер <span style="color:var(--mut);font-size:12px">+15 XP</span></div>
+  <div class="grid grid-cols-3 gap-2 mb-2"><input id="bw" type="number" inputmode="decimal" placeholder="Вес, кг" class="inp" style="padding:0 8px"><input id="bt" type="number" inputmode="decimal" placeholder="Талия, см" class="inp" style="padding:0 8px"><input id="bs" type="number" inputmode="decimal" placeholder="Плечи, см" class="inp" style="padding:0 8px"></div>
+  <button class="btn bl w-full" onclick="addBody()">Сохранить замер</button></div>
+ <div class="card"><div class="h">История замеров</div>${b.length?`<div class="grid grid-cols-4 text-xs pb-2" style="color:var(--mut)"><span>Дата</span><span>Вес</span><span>Талия</span><span>Плечи</span></div>`+b.map((m,i)=>`<div class="grid grid-cols-4 py-2 border-t text-sm" style="border-color:#1f1f27"><span>${fmtD(m.t)}</span><span>${m.w}${i===0?' '+dl('w'):''}</span><span>${m.t2}${i===0?' '+dl('t2'):''}</span><span>${m.s}${i===0?' '+dl('s'):''}</span></div>`).join(''):'<div style="color:var(--mut)">Сделай первый замер, чтобы отслеживать рекомпозицию.</div>'}</div>
+ <div class="card"><div class="h">🤖 ИИ-оценка задач</div><div class="text-xs mb-2" style="color:var(--mut)">${S.key?'Ключ сохранён: сложность оценивает Claude с поиском в интернете.':'Без ключа работает локальная оценка по ключевым словам. Для ИИ вставь API-ключ Anthropic, он хранится только на этом телефоне.'}</div><input id="ak" type="password" placeholder="sk-ant-…" class="inp mb-2"><div class="grid grid-cols-2 gap-2"><button class="btn pu" onclick="saveKey()">Сохранить</button><button class="btn" onclick="saveKey(1)">Удалить</button></div></div>
+ <div class="card"><div class="h">Достижения <span style="color:var(--mut);font-size:12px">${Object.keys(S.ach).length}/${ACH.length}</span></div>
+  <div class="grid grid-cols-3 gap-2">${ACH.map(a=>`<div class="ach ${S.ach[a.id]?'on':''} text-center p-2 rounded-2xl" style="background:#0e0e12;border:1px solid #1f1f27"><div class="text-3xl">${a.i}</div><div class="text-xs font-semibold mt-1">${a.n}</div><div style="color:var(--mut);font-size:10px">${a.d}</div></div>`).join('')}</div></div></div>`}
+function addBody(){const w=parseFloat($('#bw').value),t2=parseFloat($('#bt').value),s=parseFloat($('#bs').value);
+ if(!(w>0&&t2>0&&s>0)){toast('Заполни все три поля');return}
+ S.body.push({t:Date.now(),w,t2,s});save();sOk();addXp(15,'замер тела');checkAch();render()}
+
+function render(){const m=$('#main');
+ m.innerHTML=[viewHome,viewFund,viewTasks,viewProg][tab]();
+ if(tab===2)pDraw();head()}
+
+/* ===== INIT ===== */
+head();nav();render();checkAch();
+</script>
+</body>
+</html>
